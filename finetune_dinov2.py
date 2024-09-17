@@ -34,7 +34,7 @@ def main(args):
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # Get data loader
-    train_loader, val_loader, test_loader = myutils.getdata(batch_size=args.batch_size)
+    train_loader, val_loader, test_loader = myutils.getdata(batch_size=args.batch_size, args.data_dir)
 
     model = myutils.myDinoV2(args.weight_path)
 
@@ -102,8 +102,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', '-b', default=128, type=int, metavar='N',
                         help='mini-batch size (default: 128)')
     parser.add_argument('--log_dir', default='./myoutput', type=str, metavar='PATH',
-                        help='path to directory where to log (default: current directory)')
-    parser.add_argument('--data_dir', type=str, metavar='PATH',
+                        help='path to directory where to log')
+    parser.add_argument('--data_dir', default="/home/cap6411.student1/CVsystem/assignment/hw5/human-action-recognition-dataset/Structured/", type=str,
                         help='path to the dataset')
     parser.add_argument('--learning_rate',
                         type=float, default=0.001,

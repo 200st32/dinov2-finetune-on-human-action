@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from torchvision import datasets, models
+from torchvision.transforms import functional as F
 from torch.utils.data import DataLoader
 from functools import partial
 import time
@@ -13,6 +14,7 @@ import argparse
 import matplotlib.pyplot as plt
 import matplotlib
 from pynvml import *
+import opendatasets as od
 
 import sys
 sys.path.append('dinov2')
@@ -22,6 +24,49 @@ from dinov2.eval.linear import LinearClassifier
 from dinov2.eval.utils import ModelWithIntermediateLayers
 from dinov2.models.vision_transformer import vit_small 
 
+
+
+class load_best_model(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # get feature model
+        '''
+        model = torch.hub.load(
+            "facebookresearch/dinov2", type, pretrained=True
+        ).to(device)
+        '''
+        model = vit_small(
+            patch_size=14,
+            img_size=518,
+            init_values=1.0,
+            block_chunks=0
+        )
+        model.to(device)
+        autocast_ctx = partial(
+            torch.cuda.amp.autocast, enabled=True, dtype=torch.float16
+        )
+        self.feature_model = ModelWithIntermediateLayers(
+            model, n_last_blocks=1, autocast_ctx=autocast_ctx
+        ).to(device)
+
+        with torch.no_grad():
+            sample_input = torch.randn(1, 3, 224, 224).to(device)
+            sample_output = self.feature_model(sample_input)
+
+        # get linear readout
+        out_dim = create_linear_input(
+            sample_output, use_n_blocks=1, use_avgpool=True
+        ).shape[1]
+        self.classifier = LinearClassifier(
+            out_dim, use_n_blocks=1, use_avgpool=True, num_classes=15
+        ).to(device)
+
+    def forward(self, x):
+        x = self.feature_model(x)
+        x = self.classifier(x)
+        return x
 
 class myDinoV2(nn.Module):
 
@@ -229,7 +274,7 @@ def test_model(model, test_loader, loss_function, device):
 
 if __name__ == '__main__':
 
-    model = myDinoV2()
+    model = myDinoV2('/content/pretrain/dinov2_vits14_pretrain.pth')
 
     print("model load successfully!")
 
