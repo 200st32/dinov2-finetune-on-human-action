@@ -34,7 +34,7 @@ def main(args):
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # Get data loader
-    train_loader, val_loader, test_loader = myutils.getdata(batch_size=args.batch_size, args.data_dir)
+    train_loader, val_loader, test_loader = myutils.getdata(batch_size=args.batch_size, data_path=args.data_dir)
 
     model = myutils.myDinoV2(args.weight_path)
 
